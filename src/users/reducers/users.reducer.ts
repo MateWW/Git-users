@@ -3,6 +3,7 @@ import { RequestStatus } from 'common/enums/request-status.enum';
 import { User } from '../models/user';
 import { Repository } from '../models/repository';
 import * as actions from '../actions/users.actions';
+import { Biography } from '../models/biography';
 
 export interface UsersState {
     searchUserPhrase: string;
@@ -10,6 +11,8 @@ export interface UsersState {
     searchError: string;
     users: User[];
     selectedUser: User | null;
+    biography: Biography | null;
+    biographyStatus: RequestStatus;
     repositories: Repository[];
     repositoriesError: string;
     repositoriesStatus: RequestStatus;
@@ -21,14 +24,16 @@ const defaultState: UsersState = {
     searchError: '',
     users: [],
     selectedUser: null,
+    biography: null,
+    biographyStatus: RequestStatus.BEFORE,
     repositories: [],
     repositoriesError: '',
     repositoriesStatus: RequestStatus.BEFORE,
 };
 
 export function usersReducer(
-    action: actions.USER_ACTIONS,
-    state: UsersState = defaultState
+    state: UsersState = defaultState,
+    action: actions.USER_ACTIONS
 ): UsersState {
     switch (action.type) {
         case actions.SET_SEARCH_USER_PHRASE:
@@ -62,6 +67,27 @@ export function usersReducer(
             return {
                 ...state,
                 selectedUser: action.payload,
+                biography: null,
+            };
+
+        case actions.USER_BIO_REQUEST:
+            return {
+                ...state,
+                biographyStatus: RequestStatus.PENDING,
+            };
+
+        case actions.USER_BIO_SUCCESS:
+            return {
+                ...state,
+                biographyStatus: RequestStatus.SUCCEED,
+                biography: action.payload,
+            };
+
+        case actions.USER_BIO_FAILURE:
+            return {
+                ...state,
+                biographyStatus: RequestStatus.FAILED,
+                biography: null,
             };
 
         case actions.USER_REPOSITORIES_REQUEST:

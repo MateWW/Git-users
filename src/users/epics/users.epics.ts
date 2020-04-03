@@ -6,22 +6,25 @@ import {
     filter,
     withLatestFrom,
     switchMap,
+    tap,
 } from 'rxjs/operators';
 
 import { RootState } from 'common/reducers';
+import { container } from 'common/services/injection.service';
 
 import * as UsersActions from '../actions/users.actions';
-import { container } from '../../common/services/injection.service';
 import { getSearchPhrase, getSelectedUser } from '../selectors/users.selectors';
 import { UsersService } from '../services/users.service';
 
 type TriggerSearchUserEpic = Epic<UsersActions.USER_ACTIONS>;
 const triggerSearchUser: TriggerSearchUserEpic = (action$) =>
     action$.pipe(
+        tap(console.log),
         filter(isOfType(UsersActions.SET_SEARCH_USER_PHRASE)),
         debounceTime(300),
         filter(({ payload }) => payload.length > 3),
-        map(() => UsersActions.searchUser.request())
+        map(() => UsersActions.searchUser.request()),
+        tap(console.log)
     );
 
 type SearchUserEpic = Epic<
@@ -47,19 +50,44 @@ type SelectUserEpic = Epic<UsersActions.USER_ACTIONS>;
 const selectUser: SelectUserEpic = (action$) =>
     action$.pipe(
         filter(isOfType(UsersActions.SELECT_USER)),
-        debounceTime(300),
+        debounceTime(100),
         filter(({ payload }) => !!payload),
-        map(() => UsersActions.searchUser.request())
+        switchMap(() => [
+            UsersActions.fetchBiography.request(),
+            UsersActions.fetchRepositories.request(),
+        ])
     );
 
-type fetchRepositoriesEpic = Epic<
+type FetchBiographyEpic = Epic<
     UsersActions.USER_ACTIONS,
     UsersActions.USER_ACTIONS,
     RootState
 >;
-const fetchRepositories: fetchRepositoriesEpic = (action$, state$) =>
+const biographyFetch: FetchBiographyEpic = (action$, state$) =>
     action$.pipe(
-        filter(isOfType(UsersActions.SEARCH_USER_REQUEST)),
+        filter(isOfType(UsersActions.USER_BIO_REQUEST)),
+        withLatestFrom(state$.pipe(map(getSelectedUser))),
+        filter(([_action, user]) => !!user),
+        switchMap(([_action, user]) =>
+            container
+                .resolve<UsersService>('usersService')
+                .biographyFetch(user?.name || '')
+        ),
+        map((result) =>
+            typeof result === 'string'
+                ? UsersActions.fetchBiography.failure()
+                : UsersActions.fetchBiography.success(result)
+        )
+    );
+
+type FetchRepositoriesEpic = Epic<
+    UsersActions.USER_ACTIONS,
+    UsersActions.USER_ACTIONS,
+    RootState
+>;
+const fetchRepositories: FetchRepositoriesEpic = (action$, state$) =>
+    action$.pipe(
+        filter(isOfType(UsersActions.USER_REPOSITORIES_REQUEST)),
         withLatestFrom(state$.pipe(map(getSelectedUser))),
         filter(([_action, user]) => !!user),
         switchMap(([_action, user]) =>
@@ -74,9 +102,10 @@ const fetchRepositories: fetchRepositoriesEpic = (action$, state$) =>
         )
     );
 
-export const usersEpic = combineEpics(
+export const usersEpics = combineEpics(
     triggerSearchUser,
     searchUser,
     selectUser,
+    biographyFetch,
     fetchRepositories
 );

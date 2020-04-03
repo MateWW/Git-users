@@ -3,9 +3,10 @@ import { ajax } from 'rxjs/ajax';
 import { map, catchError } from 'rxjs/operators';
 
 import { parseUser, User } from '../models/user';
-import { UsersReponse } from '../models/users-response';
+import { SearchUsersReponse, UserResponse } from '../models/users-response';
 import { Repository, parseRepository } from '../models/repository';
 import { UsersRepositoriesResponse } from '../models/users-repositories-response';
+import { Biography, parseBiography } from '../models/biography';
 
 export class UsersService {
     private static apiUrl = 'https://api.github.com';
@@ -13,7 +14,7 @@ export class UsersService {
     public usersSearch(phrase: string): Observable<User[] | string> {
         return ajax.get(this.getSearchUserUrl(phrase)).pipe(
             map((responseContainer) => {
-                const body: UsersReponse = responseContainer.response;
+                const body: SearchUsersReponse = responseContainer.response;
                 return body.items.map(parseUser);
             }),
             catchError(() => ['Something went wrong!'])
@@ -24,6 +25,20 @@ export class UsersService {
         return `${UsersService.apiUrl}/search/users?q=${encodeURI(user)}`;
     }
 
+    public biographyFetch(user: string): Observable<Biography | string> {
+        return ajax.get(this.getUserUrl(user)).pipe(
+            map((responseContainer) => {
+                const body: UserResponse = responseContainer.response;
+                return parseBiography(body);
+            }),
+            catchError(() => ['Something went wrong!'])
+        );
+    }
+
+    private getUserUrl(user: string): string {
+        return `${UsersService.apiUrl}/users/${encodeURI(user)}`;
+    }
+
     public repositoriesFetch(user: string): Observable<Repository[] | string> {
         return ajax.get(this.getRepositoriesUrl(user)).pipe(
             map((responseContainer) => {
@@ -31,7 +46,7 @@ export class UsersService {
                     responseContainer.response;
                 return body
                     .map(parseRepository)
-                    .sort((a, b) => a.stars - b.stars)
+                    .sort((a, b) => b.stars - a.stars)
                     .slice(0, 3);
             }),
             catchError(() => ['Something went wrong!'])
