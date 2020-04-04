@@ -1,70 +1,66 @@
-import { of, Subject, throwError } from 'rxjs';
 import { ajax, AjaxResponse } from 'rxjs/ajax';
+import { of } from 'rxjs';
 
-import { mockStore } from 'common/utils/test-utils';
-import { RequestStatus } from 'common/enums/request-status.enum';
-
-import { parseUser } from '../models/user';
 import { UsersService } from './users.service';
-import * as UsersState from './users.state';
-import { searchUsers } from './user.service.mock.json';
+import {
+    searchUsers,
+    fullUserData,
+    repositories,
+} from './user.service.mock.json';
+import { parseUser } from '../models/user';
+import { SearchResponseUser, UserResponse } from '../models/users-response';
+import { parseBiography } from '../models/biography';
+import { parseRepository } from '../models/repository';
+import { RepositoryResponse } from '../models/users-repositories-response';
 
-describe('users/services/users.service.ts', () => {
+describe('src/users/services/users.service.ts', () => {
     const getService = () => new UsersService();
 
-    test('should get users', () => {
-        const setUsers = jest.fn(() => true);
-        const state = {
-            users: { searchUser: 'MateW' },
-        };
-        const usersRequest = jest
-            .spyOn(ajax, 'get')
-            .mockReturnValue(of(searchUsers as AjaxResponse));
-
-        mockStore(null, state, setUsers);
-
-        getService();
-        expect(usersRequest).toHaveBeenCalledWith(
-            `https://api.github.com/search/users?q=MateW`
+    test('fetch users list', () => {
+        jest.spyOn(ajax, 'get').mockReturnValue(
+            of(searchUsers as AjaxResponse)
         );
-        expect(setUsers).toHaveBeenCalledWith(
-            'users',
-            expect.objectContaining({ searchStatus: RequestStatus.PENDING })
+
+        const searchPhrase = 'MockPhrase';
+        const result = getService().usersSearch(searchPhrase).toPromise();
+
+        expect(ajax.get).toHaveBeenCalledWith(
+            expect.stringContaining(`/search/users?q=${searchPhrase}`)
         );
-        expect(setUsers).toHaveBeenCalledWith(
-            'users',
-            expect.objectContaining({
-                searchStatus: RequestStatus.SUCCEED,
-                users: [parseUser(searchUsers.response.items[0])],
-            })
+        return expect(result).resolves.toEqual([
+            parseUser(searchUsers.response.items[0] as SearchResponseUser),
+        ]);
+    });
+
+    test('fetch user biography', () => {
+        jest.spyOn(ajax, 'get').mockReturnValue(
+            of(fullUserData as AjaxResponse)
+        );
+
+        const user = 'MockUser';
+        const result = getService().biographyFetch(user).toPromise();
+
+        expect(ajax.get).toHaveBeenCalledWith(
+            expect.stringContaining(`/users/${user}`)
+        );
+        return expect(result).resolves.toEqual(
+            parseBiography(fullUserData.response as UserResponse)
         );
     });
 
-    test('should failed while searching for user', () => {
-        const setUsers = jest.fn(() => true);
-        const state = {
-            users: { searchUser: 'MateW' },
-        };
-        const usersRequest = jest
-            .spyOn(ajax, 'get')
-            .mockReturnValue(throwError('This is an error!'));
+    test('fetch user repositories', () => {
+        jest.spyOn(ajax, 'get').mockReturnValue(
+            of(repositories as AjaxResponse)
+        );
 
-        mockStore(null, state, setUsers);
+        const user = 'MockUser';
+        const result = getService().repositoriesFetch(user).toPromise();
 
-        getService();
-        expect(usersRequest).toHaveBeenCalledWith(
-            `https://api.github.com/search/users?q=MateW`
+        expect(ajax.get).toHaveBeenCalledWith(
+            expect.stringContaining(`/users/${user}/repos`)
         );
-        expect(setUsers).toHaveBeenCalledWith(
-            'users',
-            expect.objectContaining({ searchStatus: RequestStatus.PENDING })
-        );
-        expect(setUsers).toHaveBeenCalledWith(
-            'users',
-            expect.objectContaining({
-                searchStatus: RequestStatus.FAILED,
-                searchError: expect.any(String),
-            })
-        );
+        return expect(result).resolves.toEqual([
+            parseRepository(repositories.response[0] as RepositoryResponse),
+        ]);
     });
 });

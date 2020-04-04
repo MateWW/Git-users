@@ -19,12 +19,10 @@ import { UsersService } from '../services/users.service';
 type TriggerSearchUserEpic = Epic<UsersActions.USER_ACTIONS>;
 const triggerSearchUser: TriggerSearchUserEpic = (action$) =>
     action$.pipe(
-        tap(console.log),
         filter(isOfType(UsersActions.SET_SEARCH_USER_PHRASE)),
         debounceTime(300),
         filter(({ payload }) => payload.length > 3),
-        map(() => UsersActions.searchUser.request()),
-        tap(console.log)
+        map(() => UsersActions.searchUser.request())
     );
 
 type SearchUserEpic = Epic<

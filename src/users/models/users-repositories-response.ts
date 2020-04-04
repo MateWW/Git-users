@@ -5,10 +5,10 @@ export interface RepositoryResponse {
     node_id: string;
     name: string;
     full_name: string;
-    private: boolean;
     owner: RepositoryOwner;
+    private: boolean;
     html_url: string;
-    description: null;
+    description: string | null;
     fork: boolean;
     url: string;
     forks_url: string;
@@ -58,21 +58,19 @@ export interface RepositoryResponse {
     size: number;
     stargazers_count: number;
     watchers_count: number;
-    language: null;
+    language: string | null;
     has_issues: boolean;
     has_projects: boolean;
     has_downloads: boolean;
     has_wiki: boolean;
     has_pages: boolean;
     forks_count: number;
-    mirror_url: null;
+    mirror_url: string | null;
     archived: boolean;
     disabled: boolean;
     open_issues_count: number;
-    license: null;
-    forks: number;
-    open_issues: number;
-    watchers: number;
+    permissions: Record<string, boolean> | null;
+    license: Record<string, string> | null;
     default_branch: string;
 }
 

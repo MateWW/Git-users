@@ -18,7 +18,7 @@ export interface UsersState {
     repositoriesStatus: RequestStatus;
 }
 
-const defaultState: UsersState = {
+export const defaultState: UsersState = {
     searchUserPhrase: '',
     searchStatus: RequestStatus.BEFORE,
     searchError: '',

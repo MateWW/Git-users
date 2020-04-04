@@ -1,0 +1,19 @@
+{
+    "user": {
+        "id": 123,
+        "name": "MockName",
+        "avatar": "",
+        "score": 1.2
+    },
+    "biography": {
+        "fullName": "MockFullName",
+        "description": "Description should be here"
+    },
+    "repositories": [
+        {
+            "name": "mockName",
+            "url": "",
+            "stars": 3
+        }
+    ]
+}
